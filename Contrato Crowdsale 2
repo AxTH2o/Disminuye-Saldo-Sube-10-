@@ -12,10 +12,14 @@ contract PlusEthCrowdsale is Ownable {
     uint256 public tokensSold; // Contador de tokens vendidos
     uint256 public initialBalance; // Saldo inicial del contrato
 
-    constructor(address _token, uint256 _initialPrice) Ownable(msg.sender) {
-        token = IERC20(_token);
+    // Dirección del contrato del token
+    address public constant TOKEN_ADDRESS = 0x8142D1508f982Ac7948FE920e2b6a57A6227E9D0;
+
+    constructor(uint256 _initialPrice) Ownable(msg.sender) {
+        token = IERC20(TOKEN_ADDRESS);
         tokenPrice = _initialPrice; // Precio inicial en wei (ej. 0.01 ETH)
         initialBalance = token.balanceOf(address(this)); // Registra el saldo inicial
+        require(initialBalance > 0, "El contrato de crowdsale debe tener tokens");
     }
 
     // Función para comprar tokens enviando Ether
@@ -59,7 +63,7 @@ contract PlusEthCrowdsale is Ownable {
         payable(owner()).transfer(balance);
     }
 
-    // Recibe Ether directamente (permite compras enviando Ether al contrato)
+    // Recibe Ether directamente y ejecuta la compra de tokens
     receive() external payable {
         buyTokens();
     }
