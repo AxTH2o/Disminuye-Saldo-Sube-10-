@@ -1,0 +1,22 @@
+const hre = require("hardhat");
+
+async function main() {
+    // Desplegar el contrato del token
+    const PlusEth = await hre.ethers.getContractFactory("PlusEth");
+    const crowdsaleAddress = "0x..."; // Dirección del contrato de crowdsale (se define después)
+    const plusEth = await PlusEth.deploy(crowdsaleAddress);
+    await plusEth.waitForDeployment();
+    console.log("PlusEth desplegado en:", await plusEth.getAddress());
+
+    // Desplegar el contrato de crowdsale
+    const PlusEthCrowdsale = await hre.ethers.getContractFactory("PlusEthCrowdsale");
+    const initialPrice = hre.ethers.parseEther("0.01"); // 0.01 ETH por token
+    const crowdsale = await PlusEthCrowdsale.deploy(await plusEth.getAddress(), initialPrice);
+    await crowdsale.waitForDeployment();
+    console.log("PlusEthCrowdsale desplegado en:", await crowdsale.getAddress());
+}
+
+main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});
