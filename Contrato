@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract PlusEth is ERC20, Ownable {
+    constructor(address crowdsale) ERC20("Plus Eth", "+ETH") Ownable(msg.sender) {
+        // Mint 1 billón de tokens al contrato de crowdsale
+        _mint(crowdsale, 1_000_000_000 * 10**18);
+    }
+
+    // Función para que el propietario acuñe más tokens
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+}
