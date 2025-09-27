@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract PlusEthCrowdsale is Ownable {
+    IERC20 public token; // Referencia al contrato del token PlusEth
+    uint256 public tokenPrice; // Precio actual del token (en wei por token)
+    uint256 public constant SALE_THRESHOLD = 10_000_000 * 10**18; // Umbral de 10M tokens
+    uint256 public constant PRICE_INCREASE_PERCENT = 10; // Incremento del 10%
+    uint256 public tokensSold; // Contador de tokens vendidos
+    uint256 public initialBalance; // Saldo inicial del contrato
+
+    constructor(address _token, uint256 _initialPrice) Ownable(msg.sender) {
+        token = IERC20(_token);
+        tokenPrice = _initialPrice; // Precio inicial en wei (ej. 0.01 ETH)
+        initialBalance = token.balanceOf(address(this)); // Registra el saldo inicial
+    }
+
+    // Función para comprar tokens enviando Ether
+    function buyTokens() public payable {
+        require(msg.value > 0, "Debes enviar Ether");
+        
+        // Calcular cuántos tokens comprar basados en el precio actual
+        uint256 tokensToBuy = (msg.value * 10**18) / tokenPrice;
+        require(token.balanceOf(address(this)) >= tokensToBuy, "No hay suficientes tokens disponibles");
+
+        // Transferir tokens al comprador
+        tokensSold += tokensToBuy;
+        _checkAndUpdatePrice();
+        require(token.transfer(msg.sender, tokensToBuy), "Transferencia de tokens fallida");
+
+        // Nota: El Ether permanece en el contrato hasta que el propietario lo retire
+    }
+
+    // Verifica si se alcanzó el umbral y ajusta el precio
+    function _checkAndUpdatePrice() internal {
+        uint256 currentBalance = token.balanceOf(address(this));
+        uint256 tokensDecreased = initialBalance - currentBalance;
+
+        // Verifica si se han vendido 10M tokens desde el último ajuste
+        if (tokensDecreased >= tokensSold + SALE_THRESHOLD) {
+            tokenPrice = (tokenPrice * (100 + PRICE_INCREASE_PERCENT)) / 100; // Aumenta el precio un 10%
+            tokensSold = 0; // Reinicia el contador de tokens vendidos
+            initialBalance = currentBalance; // Actualiza el saldo inicial para el próximo umbral
+        }
+    }
+
+    // Función para consultar el precio actual
+    function getTokenPrice() public view returns (uint256) {
+        return tokenPrice;
+    }
+
+    // Función para que el propietario retire el Ether recaudado
+    function withdrawEther() public onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No hay Ether para retirar");
+        payable(owner()).transfer(balance);
+    }
+
+    // Recibe Ether directamente (permite compras enviando Ether al contrato)
+    receive() external payable {
+        buyTokens();
+    }
+}
